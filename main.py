@@ -3,18 +3,18 @@ import asyncio
 from telethon import TelegramClient, events
 
 # =========================
-# ENV VARIABLES (RAILWAY)
+# ENV VARIABLES (REPLIT SECRETS)
 # =========================
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-GROUP = os.getenv("GROUP")  # @groupusername or group ID
+GROUP = os.getenv("GROUP")
 DELAY = float(os.getenv("DELAY", "0.1"))
 
 # =========================
 # CLIENT
 # =========================
-client = TelegramClient("auto_approve_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+client = TelegramClient("session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
 
 # =========================
@@ -36,7 +36,7 @@ async def handler(event):
 
 
 # =========================
-# CLEAR OLD REQUESTS ON START
+# CLEAR EXISTING REQUESTS
 # =========================
 async def clear_old_requests():
     print("Clearing existing join requests...")
@@ -51,14 +51,13 @@ async def clear_old_requests():
                 print(f"Failed {req.user_id}: {e}")
 
     except Exception as e:
-        print(f"Could not load join requests: {e}")
+        print(f"Could not fetch join requests: {e}")
 
 
 # =========================
-# MAIN START
+# START BOT
 # =========================
 async def main():
-    print("Bot is running...")
     await clear_old_requests()
     await client.run_until_disconnected()
 
