@@ -1,23 +1,20 @@
-from telethon import TelegramClient, events
+import os
 import asyncio
+from telethon import TelegramClient, events
 
 # =========================
-# CONFIG (FILL THIS IN)
+# ENV VARIABLES (RAILWAY)
 # =========================
-api_id = 1234567
-api_hash = "YOUR_API_HASH"
-bot_token = "YOUR_BOT_TOKEN"
-
-# Put your group username or ID here
-GROUP = "YOUR_GROUP_USERNAME_OR_ID"
-
-# Delay to avoid Telegram rate limits
-DELAY = 0.1
+API_ID = int(os.getenv("API_ID"))
+API_HASH = os.getenv("API_HASH")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+GROUP = os.getenv("GROUP")  # @groupusername or group ID
+DELAY = float(os.getenv("DELAY", "0.1"))
 
 # =========================
-# CLIENT START
+# CLIENT
 # =========================
-client = TelegramClient("auto_approve_session", api_id, api_hash).start(bot_token=bot_token)
+client = TelegramClient("auto_approve_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
 
 # =========================
@@ -26,51 +23,43 @@ client = TelegramClient("auto_approve_session", api_id, api_hash).start(bot_toke
 @client.on(events.ChatAction)
 async def handler(event):
 
-    # Ignore normal joins
-    if event.user_joined or event.user_added:
+    if not event.join_request:
         return
 
-    # Handle join requests
-    if event.join_request:
-        try:
-            await client.approve_chat_join_request(
-                event.chat_id,
-                event.user_id
-            )
-            print(f"Approved: {event.user_id}")
-        except Exception as e:
-            print(f"Error approving user {event.user_id}: {e}")
+    user = await event.get_user()
+
+    try:
+        await client.approve_chat_join_request(event.chat_id, user.id)
+        print(f"Approved new user: {user.id}")
+    except Exception as e:
+        print(f"Error approving user {user.id}: {e}")
 
 
 # =========================
-# CLEAR EXISTING REQUESTS
+# CLEAR OLD REQUESTS ON START
 # =========================
 async def clear_old_requests():
-    print("Checking existing join requests...")
+    print("Clearing existing join requests...")
 
     try:
         async for req in client.iter_chat_join_requests(GROUP):
             try:
                 await client.approve_chat_join_request(GROUP, req.user_id)
-                print(f"Approved existing: {req.user_id}")
+                print(f"Approved old request: {req.user_id}")
                 await asyncio.sleep(DELAY)
             except Exception as e:
-                print(f"Failed: {req.user_id} | {e}")
+                print(f"Failed {req.user_id}: {e}")
 
     except Exception as e:
-        print(f"Could not fetch join requests: {e}")
+        print(f"Could not load join requests: {e}")
 
 
 # =========================
-# STARTUP
+# MAIN START
 # =========================
 async def main():
     print("Bot is running...")
-
-    # Clear old pending requests once at startup
     await clear_old_requests()
-
-    # Keep running for new requests
     await client.run_until_disconnected()
 
 
